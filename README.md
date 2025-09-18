@@ -127,13 +127,16 @@ parsed.items = Array.isArray(parsed.items) ? parsed.items : [];
 
 function normalizeCategory(cat, name){
   const t = String(cat || '') + String(name || '');
-  // 優先順：材料→運→手
-  if (/(材料|材)/.test(t)) return '材料費';
-  if (/運/.test(t))        return '運搬費';
-  if (/手/.test(t))        return '手数料';
+  // 優先順：産業廃棄物処理費→人件費→諸経費→材料費→運搬費→手数料
+  if (/(産業?廃棄物処理費?|産)/.test(t)) return '産業廃棄物処理費';
+  if (/(人件費?|人)/.test(t))             return '人件費';
+  if (/(諸経費?|諸)/.test(t))             return '諸経費';
+  if (/(材料|材)/.test(t))                return '材料費';
+  if (/運/.test(t))                       return '運搬費';
+  if (/手/.test(t))                       return '手数料';
 
   // 既に正しい表記ならそのまま
-  const known = ['材料費','運搬費','手数料'];
+  const known = ['産業廃棄物処理費','人件費','諸経費','材料費','運搬費','手数料'];
   if (known.includes(String(cat))) return String(cat);
 
   // いずれにも当てはまらなければデフォルト
