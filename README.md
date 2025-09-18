@@ -185,6 +185,7 @@ function makeInvoiceFromPayload_(payload, createdDateStr) {
   const tabName = `${issuedDateStr.replace(/-/g,'')}_${safeClient}`.slice(0, 99);
 
   const sh = src.copyTo(ss).setName(tabName);
+  const sheetId = sh.getSheetId();
 
   // ★ 発行日（D2）は作成日で固定
   sh.getRange('D2').setValue(issuedDateStr);
@@ -203,7 +204,7 @@ function makeInvoiceFromPayload_(payload, createdDateStr) {
 
   sh.getRange('C15').setFormula('=E32');
 
-  return {invoiceId, sheetName: tabName};
+  return {invoiceId, sheetName: tabName, sheetId};
 }
 
 /******** PDF出力 ********/
@@ -260,24 +261,22 @@ function run(force=false){
       inbox.removeFile(f);
 
       Logger.log('→ 請求書タブを作成');
-// ★ 作成日をここで確定させ、以降すべてこの日付で統一
-const createdDateStr = Utilities.formatDate(new Date(), CFG.TIMEZONE, 'yyyy-MM-dd');
-const {invoiceId, sheetName} = makeInvoiceFromPayload_(payload, createdDateStr);
-Logger.log('→ invoiceId=' + invoiceId + ' sheetName=' + sheetName);
+      // ★ 作成日をここで確定させ、以降すべてこの日付で統一
+      const createdDateStr = Utilities.formatDate(new Date(), CFG.TIMEZONE, 'yyyy-MM-dd');
+      const {invoiceId, sheetName, sheetId} = makeInvoiceFromPayload_(payload, createdDateStr);
+      Logger.log('→ invoiceId=' + invoiceId + ' sheetName=' + sheetName + ' sheetId=' + sheetId);
 
-// ★ テンプレではなく “新規作成タブ(sheetName)” をPDF化して送る
-Logger.log('→ PDF化して保存/送信');
-const ss = SpreadsheetApp.openById(CFG.SS_ID);
-const invSheet = ss.getSheetByName(sheetName);
-const pdfBlob = exportSheetPdf_(CFG.SS_ID, invSheet.getSheetId(), `請求書_${sheetName}.pdf`);
-DriveApp.getFolderById(CFG.PDF_FOLDER_ID).createFile(pdfBlob);
+      // ★ テンプレではなく “新規作成タブ(sheetName)” をPDF化して送る
+      Logger.log('→ PDF化して保存/送信');
+      const pdfBlob = exportSheetPdf_(CFG.SS_ID, sheetId, `請求書_${sheetName}.pdf`);
+      DriveApp.getFolderById(CFG.PDF_FOLDER_ID).createFile(pdfBlob);
 
-GmailApp.sendEmail(
-  CFG.SELF_EMAIL,
-  `請求書発行: ${sheetName}`,
-  `請求書を発行しました。\n請求先: ${payload.client}\n発行日: ${createdDateStr}\nタブ名: ${sheetName}`,
-  {attachments:[pdfBlob]}
-);
+      GmailApp.sendEmail(
+        CFG.SELF_EMAIL,
+        `請求書発行: ${sheetName}`,
+        `請求書を発行しました。\n請求先: ${payload.client}\n発行日: ${createdDateStr}\nタブ名: ${sheetName}`,
+        {attachments:[pdfBlob]},
+      );
 
 
 
