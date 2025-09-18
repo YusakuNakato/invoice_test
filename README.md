@@ -184,7 +184,11 @@ function makeInvoiceFromPayload_(payload, createdDateStr) {
   // ★ タブ名 = 請求書作成日_請求先（作成日はハイフン抜き）
   const tabName = `${issuedDateStr.replace(/-/g,'')}_${safeClient}`.slice(0, 99);
 
-  const sh = src.copyTo(ss).setName(tabName);
+  const existing = ss.getSheetByName(tabName);
+  if (existing) ss.deleteSheet(existing);
+  const sh = src.copyTo(ss);
+  sh.setName(tabName);
+  ss.setActiveSheet(sh);
   const sheetId = sh.getSheetId();
 
   // ★ 発行日（D2）は作成日で固定
