@@ -169,7 +169,7 @@ return parsed;
 
 
 /******** テンプレを複製し、指定セルに書き込む ********/
-function makeInvoiceFromPayload_(payload) {
+function makeInvoiceFromPayload_(payload, createdDateStr) {
   const ss = SpreadsheetApp.openById(CFG.SS_ID);
   const src = ss.getSheetByName(CFG.TEMPLATE_SHEET);
   if (!src) throw new Error('テンプレートタブが見つかりません: ' + CFG.TEMPLATE_SHEET);
@@ -177,14 +177,17 @@ function makeInvoiceFromPayload_(payload) {
   const tz = CFG.TIMEZONE;
   const invoiceId = 'INV-' + Utilities.formatDate(new Date(), tz, 'yyyyMMdd-HHmmss');
 
+  // 呼び出し側で作成日を決定済みだが、念のためフォールバックを用意
+  const issuedDateStr = createdDateStr || Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+
   const safeClient = String(payload.client).replace(/[\\/:*?"<>|]/g,'');
   // ★ タブ名 = 請求書作成日_請求先（作成日はハイフン抜き）
-  const tabName = `${createdDateStr.replace(/-/g,'')}_${safeClient}`.slice(0, 99);
+  const tabName = `${issuedDateStr.replace(/-/g,'')}_${safeClient}`.slice(0, 99);
 
   const sh = src.copyTo(ss).setName(tabName);
 
   // ★ 発行日（D2）は作成日で固定
-  sh.getRange('D2').setValue(createdDateStr);
+  sh.getRange('D2').setValue(issuedDateStr);
   sh.getRange('A6').setValue(payload.client); // 請求先
 
   const startRow = 20;
